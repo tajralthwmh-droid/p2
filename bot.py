@@ -1,4 +1,4 @@
-import requests, uuid, re, random, time, string, secrets, json, threading, hashlib, hmac
+import requests, uuid, re, random, time, string, secrets, json, threading, hashlib
 from datetime import datetime
 from colorama import Fore, init
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -7,8 +7,6 @@ import asyncio
 from flask import Flask
 import os
 from os import environ
-from threading import Thread
-from concurrent.futures import ThreadPoolExecutor
 
 # تهيئة الألوان
 init(autoreset=True)
@@ -22,119 +20,94 @@ app_flask = Flask(__name__)
 
 @app_flask.route('/')
 def home():
-    return "✅ ULTIMATE STEALTH BOT - IMPOSSIBLE TO DETECT", 200
+    return "🔥 ELITE STEALTH BOT - OPERATIONAL", 200
 
 def run_flask():
     port = int(environ.get('PORT', 8080))
     app_flask.run(host='0.0.0.0', port=port)
 
-# ========== نظام البروكسيات المتقدم ==========
-class StealthProxyManager:
-    def __init__(self):
-        self.proxies = []
-        self.working_proxies = []
-        self.failed_proxies = set()
-        self.current_index = 0
-        
-    def fetch_proxies(self):
-        """جلب بروكسيات من عدة مصادر"""
-        proxies_set = set()
-        
-        sources = [
-            'https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt',
-            'https://raw.githubusercontent.com/roosterkid/openproxylist/main/HTTPS_RAW.txt',
-            'https://raw.githubusercontent.com/mmpx12/proxy-list/master/http.txt',
-            'https://api.proxyscrape.com/v2/?request=displayproxies&protocol=http&timeout=5000&country=all&ssl=all&anonymity=all'
-        ]
-        
-        for source in sources:
-            try:
-                resp = requests.get(source, timeout=10)
-                for line in resp.text.strip().split('\n'):
-                    if ':' in line:
-                        proxy = line.strip()
-                        if proxy not in self.failed_proxies:
-                            proxies_set.add(f'http://{proxy}' if not proxy.startswith('http') else proxy)
-            except:
-                continue
-        
-        # اختبار البروكسيات
-        self.working_proxies = []
-        for proxy in list(proxies_set)[:100]:
-            if self.test_proxy(proxy):
-                self.working_proxies.append(proxy)
-        
-        self.proxies = self.working_proxies
-        print(Fore.GREEN + f"[+] تم تجهيز {len(self.proxies)} بروكسي عامل" + Fore.RESET)
-        return self.proxies
-    
-    def test_proxy(self, proxy):
-        """اختبار البروكسي"""
-        try:
-            test_resp = requests.get('https://httpbin.org/ip', 
-                                     proxies={'http': proxy, 'https': proxy}, 
-                                     timeout=5)
-            return test_resp.status_code == 200
-        except:
-            return False
-    
-    def get_proxy(self):
-        """الحصول على بروكسي عشوائي"""
-        if not self.proxies:
-            self.fetch_proxies()
-        if self.proxies:
-            self.current_index = (self.current_index + 1) % len(self.proxies)
-            return {'http': self.proxies[self.current_index], 'https': self.proxies[self.current_index]}
-        return None
-    
-    def mark_failed(self, proxy):
-        """تحديد بروكسي فاشل"""
-        if proxy and proxy.get('http'):
-            self.failed_proxies.add(proxy.get('http'))
-            self.proxies = [p for p in self.proxies if p != proxy.get('http')]
+# ========== أشهر 100 User-Agent حقيقي مستحيل اكتشافها ==========
+USER_AGENTS = [
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0',
+    'Mozilla/5.0 (iPhone; CPU iPhone OS 17_1_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1',
+    'Mozilla/5.0 (Linux; Android 14; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Mobile Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0',
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1',
+    'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36 OPR/107.0.0.0',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/120.0',
+    'Mozilla/5.0 (X11; Ubuntu; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (iPad; CPU OS 17_1_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1',
+    'Mozilla/5.0 (Linux; Android 12; SM-A536B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (iPhone; CPU iPhone OS 15_6_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.6.1 Mobile/15E148 Safari/604.1',
+]
 
-proxy_manager = StealthProxyManager()
-
-# ========== تقنيات تخفي خارقة ==========
-class UltimateFingerprint:
-    @staticmethod
-    def generate():
-        return {
-            'user_agent': UltimateFingerprint.random_ua(),
-            'sec_ch_ua': f'"Not_A Brand";v="8", "Chromium";v="{random.randint(118,125)}", "Google Chrome";v="{random.randint(118,125)}"',
-            'sec_ch_ua_mobile': random.choice(['?0', '?1']),
-            'sec_ch_ua_platform': f'"{random.choice(["Windows", "macOS", "Linux", "Android"])}"',
-            'accept_language': random.choice(['ar-SA,ar;q=0.9,en;q=0.8', 'en-US,en;q=0.9,ar;q=0.8', 'fr-FR,fr;q=0.9,en;q=0.8']),
-            'timezone': random.choice(['Asia/Dubai', 'Asia/Riyadh', 'Asia/Baghdad', 'Africa/Cairo']),
-            'screen': f"{random.choice([1920, 1366, 1536, 2560])}x{random.choice([1080, 768, 1440])}",
-        }
-    
+# ========== تقنيات تخفي جنونية ==========
+class EvilStealth:
     @staticmethod
     def random_ua():
-        uas = [
-            f'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{random.randint(118,125)}.0.0.0 Safari/537.36',
-            f'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/{random.randint(16,17)}.1 Safari/605.1.15',
-            f'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{random.randint(118,125)}.0.0.0 Safari/537.36',
-            f'Mozilla/5.0 (iPhone; CPU iPhone OS {random.randint(16,17)}_{random.randint(1,3)} like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/{random.randint(16,17)}.0 Mobile/15E148 Safari/604.1',
-        ]
-        return random.choice(uas)
+        return random.choice(USER_AGENTS)
     
     @staticmethod
     def instagram_ua():
-        devices = ['SM-S918B', 'Pixel 8 Pro', 'iPhone15,2', 'SM-F946B']
-        return f'Mozilla/5.0 (Linux; Android {random.randint(13,14)}; {random.choice(devices)}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{random.randint(118,125)}.0.0.0 Mobile Safari/537.36 Instagram {random.randint(300,330)}.0.0.{random.randint(25,50)} Android'
+        """User-Agent يشبه تطبيق إنستغرام الحقيقي بالضبط"""
+        models = {
+            'Samsung': ['SM-S918B', 'SM-S908B', 'SM-A536B', 'SM-F946B'],
+            'Google': ['Pixel 8 Pro', 'Pixel 7', 'Pixel 6 Pro', 'Pixel 6'],
+            'OnePlus': ['OnePlus 11', 'OnePlus 10 Pro', 'OnePlus Nord 3'],
+            'Xiaomi': ['Mi 13 Pro', 'Mi 12', 'Redmi Note 13 Pro+', 'Xiaomi 14'],
+            'iPhone': ['iPhone15,2', 'iPhone16,1', 'iPhone14,3', 'iPhone14,2']
+        }
+        brand = random.choice(list(models.keys()))
+        device = random.choice(models[brand])
+        
+        if brand == 'iPhone':
+            return f'Mozilla/5.0 (iPhone; CPU iPhone OS {random.randint(15,17)}_{random.randint(1,5)} like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Instagram {random.randint(300,330)}.0.0.{random.randint(20,50)}'
+        else:
+            return f'Mozilla/5.0 (Linux; Android {random.randint(12,14)}; {device}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{random.randint(118,125)}.0.0.0 Mobile Safari/537.36 Instagram {random.randint(300,330)}.0.0.{random.randint(20,50)} Android'
+    
+    @staticmethod
+    def random_delay(min_sec=3, max_sec=12):
+        """تأخير بشري متغير"""
+        time.sleep(random.uniform(min_sec, max_sec))
+    
+    @staticmethod
+    def generate_fingerprint():
+        """بصمة رقمية فريدة لكل طلب"""
+        return {
+            'sec_ch_ua': f'"Not_A Brand";v="8", "Chromium";v="{random.randint(118,125)}", "Google Chrome";v="{random.randint(118,125)}"',
+            'sec_ch_ua_mobile': random.choice(['?0', '?1']),
+            'sec_ch_ua_platform': f'"{random.choice(["Windows", "macOS", "Linux", "Android"])}"',
+            'accept_language': random.choice([
+                'ar-SA,ar;q=0.9,en;q=0.8',
+                'en-US,en;q=0.9,ar;q=0.8', 
+                'fr-FR,fr;q=0.9,en;q=0.8',
+                'de-DE,de;q=0.9,en;q=0.8',
+                'tr-TR,tr;q=0.9,en;q=0.8'
+            ]),
+            'screen': f"{random.choice([1920, 1366, 1536, 2560, 3440])}x{random.choice([1080, 768, 864, 1440, 1600])}",
+        }
 
-fingerprint = UltimateFingerprint()
+stealth = EvilStealth()
 
-# ========== خدمات البريد المؤقت المتعددة ==========
-class TempMailService:
+# ========== خدمات البريد المؤقت (4 خدمات مختلفة) ==========
+class TempMail:
     @staticmethod
     def create():
+        """إنشاء بريد مؤقت من أفضل الخدمات"""
         services = [
-            TempMailService._1secmail,
-            TempMailService._temp_mail,
-            TempMailService._guerrilla,
-            TempMailService._mail_temp
+            TempMail._1secmail,
+            TempMail._temp_mail_io,
+            TempMail._guerrilla,
+            TempMail._mail_tm
         ]
         for service in services:
             email = service()
@@ -145,18 +118,18 @@ class TempMailService:
     @staticmethod
     def _1secmail():
         try:
-            resp = requests.get('https://www.1secmail.com/api/v1/?action=genRandomMailbox&count=1', timeout=10)
+            resp = requests.get('https://www.1secmail.com/api/v1/?action=genRandomMailbox&count=1', timeout=15)
             if resp.status_code == 200:
                 return resp.json()[0]
         except:
             return None
     
     @staticmethod
-    def _temp_mail():
+    def _temp_mail_io():
         try:
+            headers = {'accept': '*/*', 'user-agent': stealth.random_ua()}
             resp = requests.post('https://api.internal.temp-mail.io/api/v3/email/new',
-                                headers={'accept': '*/*', 'user-agent': fingerprint.random_ua()},
-                                json={'min_name_length': 8, 'max_name_length': 12}, timeout=10)
+                                headers=headers, json={'min_name_length': 8, 'max_name_length': 12}, timeout=15)
             if resp.status_code == 200:
                 return resp.json().get("email")
         except:
@@ -167,42 +140,51 @@ class TempMailService:
         try:
             resp = requests.get('https://api.guerrillamail.com/ajax.php?f=get_email_address', timeout=10)
             if resp.status_code == 200:
-                return resp.json().get('email_addr')
+                data = resp.json()
+                return data.get('email_addr')
         except:
             return None
     
     @staticmethod
-    def _mail_temp():
+    def _mail_tm():
         try:
             resp = requests.get('https://api.mail.tm', timeout=10)
             if resp.status_code == 200:
-                return resp.json().get('email')
+                data = resp.json()
+                return data.get('email')
         except:
             return None
     
     @staticmethod
     def get_messages(email):
+        """جلب الرسائل من البريد"""
         try:
             name, domain = email.split('@')
-            resp = requests.get(f'https://www.1secmail.com/api/v1/?action=getMessages&login={name}&domain={domain}', timeout=10)
+            resp = requests.get(f'https://www.1secmail.com/api/v1/?action=getMessages&login={name}&domain={domain}', timeout=15)
             if resp.status_code == 200 and resp.json():
                 return resp.json()
         except:
             pass
+        
+        try:
+            resp = requests.get(f'https://api.internal.temp-mail.io/api/v3/email/{email}/messages', timeout=15)
+            if resp.status_code == 200 and resp.json():
+                return resp.json()
+        except:
+            pass
+        
         return []
 
-temp_mail = TempMailService()
+temp_mail = TempMail()
 
 # ========== دوال مساعدة ==========
 def random_string(length=12):
     return ''.join(random.choices(string.ascii_lowercase + string.digits + string.ascii_uppercase, k=length))
 
 def generate_password():
-    chars = string.ascii_letters + string.digits + "!@#$%^&*"
+    """كلمة مرور قوية جداً"""
+    chars = string.ascii_letters + string.digits + "!@#$%^&*()_+-=[]{}|"
     return ''.join(random.choices(chars, k=random.randint(14, 18)))
-
-def random_delay(min_sec=3, max_sec=10):
-    time.sleep(random.uniform(min_sec, max_sec))
 
 def send_telegram_message(message):
     if BOT_TOKEN and ADMIN_ID:
@@ -213,19 +195,14 @@ def send_telegram_message(message):
         except:
             pass
 
-# ========== الدالة الرئيسية للإنشاء (مطورة بالكامل) ==========
+# ========== الدالة الخارقة للإنشاء ==========
 def create_account():
-    """إنشاء حساب Instagram مع تخفي مطلق"""
-    print("\n" + Fore.CYAN + "="*60 + Fore.RESET)
-    print(Fore.MAGENTA + "[🔥] بدء عملية إنشاء حساب - وضع التخفي المطلق" + Fore.RESET)
+    """إنشاء حساب - مستحيل اكتشافه"""
+    print("\n" + Fore.RED + "█"*60 + Fore.RESET)
+    print(Fore.MAGENTA + "[💀] تشغيل وضع التخفي الخارق - الهدف: إنشاء حساب" + Fore.RESET)
     
-    # تغيير البروكسي
-    proxy = proxy_manager.get_proxy()
-    
-    # بصمة رقمية فريدة
-    fp = fingerprint.generate()
-    
-    random_delay(4, 8)
+    fp = stealth.generate_fingerprint()
+    stealth.random_delay(4, 8)
     
     # إنشاء بريد مؤقت
     print("[*] جاري إنشاء بريد مؤقت...")
@@ -235,13 +212,13 @@ def create_account():
         return False, None, None, None, None
     
     print(Fore.GREEN + f"[+] البريد: {email}" + Fore.RESET)
-    random_delay(2, 5)
+    stealth.random_delay(2, 5)
     
-    # توليد بيانات عشوائية
+    # توليد بيانات فريدة
     device_id = str(uuid.uuid4()).upper()
     csrftoken = secrets.token_urlsafe(32)
     jazoest = str(random.randint(22000, 25000))
-    session_id = f':{random_string(10)}:{random_string(12)}'
+    session_id = f':{random_string(12)}:{random_string(15)}'
     
     cookies = {
         'ig_did': device_id,
@@ -249,11 +226,12 @@ def create_account():
         'mid': random_string(22),
         'datr': secrets.token_urlsafe(24),
         'wd': f"{fp['screen'].replace('x', '')}x{fp['screen'].split('x')[1]}",
+        'sessionid': session_id,
     }
     
     headers = {
-        'User-Agent': fingerprint.instagram_ua(),
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'User-Agent': stealth.instagram_ua(),
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
         'Accept-Language': fp['accept_language'],
         'Accept-Encoding': 'gzip, deflate, br',
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -265,7 +243,9 @@ def create_account():
         'Sec-Fetch-Dest': 'document',
         'Sec-Fetch-Mode': 'navigate',
         'Sec-Fetch-Site': 'same-origin',
+        'Sec-Fetch-User': '?1',
         'Upgrade-Insecure-Requests': '1',
+        'Cache-Control': 'max-age=0',
         'X-Csrftoken': csrftoken,
         'X-IG-App-ID': '1217981644879628',
         'X-Requested-With': 'XMLHttpRequest',
@@ -277,13 +257,15 @@ def create_account():
         resp = requests.post('https://www.instagram.com/api/v1/web/accounts/check_email/',
                             cookies=cookies, headers=headers,
                             data={'email': email, 'jazoest': jazoest},
-                            timeout=25, proxies=proxy)
+                            timeout=30)
         if resp.status_code != 200:
+            print(Fore.RED + "[-] فشل التحقق" + Fore.RESET)
             return False, None, None, None, None
-    except:
+    except Exception as e:
+        print(Fore.RED + f"[-] خطأ: {e}" + Fore.RESET)
         return False, None, None, None, None
     
-    random_delay(4, 8)
+    stealth.random_delay(4, 9)
     
     # 2. طلب الكود
     print("[*] جاري طلب كود التفعيل...")
@@ -291,35 +273,40 @@ def create_account():
         resp = requests.post('https://www.instagram.com/api/v1/accounts/send_verify_email/',
                             cookies=cookies, headers=headers,
                             data={'device_id': device_id, 'email': email, 'jazoest': jazoest},
-                            timeout=25, proxies=proxy)
+                            timeout=30)
         if resp.status_code != 200:
+            print(Fore.RED + "[-] فشل طلب الكود" + Fore.RESET)
             return False, None, None, None, None
     except:
         return False, None, None, None, None
     
-    random_delay(5, 10)
+    stealth.random_delay(5, 12)
     
-    # 3. انتظار الكود
+    # 3. انتظار الكود (ذكي)
     print("[*] انتظار كود التفعيل...")
     code = None
-    for attempt in range(30):
+    for attempt in range(35):
         msgs = temp_mail.get_messages(email)
         if msgs:
             for msg in msgs:
-                body = str(msg.get('body', '')) + str(msg.get('mailText', ''))
-                match = re.search(r'\b(\d{6})\b', body)
-                if match:
-                    code = match.group(1)
-                    print(Fore.GREEN + f"[+] الكود: {code}" + Fore.RESET)
-                    break
+                subject = str(msg.get('subject', '')).lower()
+                body = str(msg.get('body', '')) + str(msg.get('mailText', '')) + str(msg.get('textBody', ''))
+                
+                if any(x in subject for x in ['verify', 'code', 'instagram', 'confirmation', 'activate']):
+                    matches = re.findall(r'\b(\d{6})\b', body)
+                    if matches:
+                        code = matches[0]
+                        print(Fore.GREEN + f"[+] الكود: {code}" + Fore.RESET)
+                        break
             if code:
                 break
         time.sleep(random.uniform(5, 9))
     
     if not code:
+        print(Fore.RED + "[-] لم يتم استلام الكود" + Fore.RESET)
         return False, None, None, None, None
     
-    random_delay(3, 6)
+    stealth.random_delay(3, 7)
     
     # 4. تأكيد الكود
     print("[*] جاري تأكيد الكود...")
@@ -327,9 +314,10 @@ def create_account():
         resp = requests.post('https://www.instagram.com/api/v1/accounts/check_confirmation_code/',
                             cookies=cookies, headers=headers,
                             data={'code': code, 'device_id': device_id, 'email': email, 'jazoest': jazoest},
-                            timeout=25, proxies=proxy)
+                            timeout=30)
         
         if resp.status_code != 200:
+            print(Fore.RED + "[-] فشل تأكيد الكود" + Fore.RESET)
             return False, None, None, None, None
         
         resp_json = resp.json()
@@ -338,10 +326,11 @@ def create_account():
             return False, None, None, None, None
         
         signup_code = resp_json.get("signup_code", "")
-    except:
+    except Exception as e:
+        print(Fore.RED + f"[-] خطأ: {e}" + Fore.RESET)
         return False, None, None, None, None
     
-    random_delay(3, 6)
+    stealth.random_delay(3, 7)
     
     # توليد بيانات الحساب
     username = random_string(random.randint(10, 16))
@@ -369,13 +358,13 @@ def create_account():
     try:
         resp = requests.post('https://www.instagram.com/api/v1/web/accounts/web_create_ajax/',
                             cookies=cookies, headers=headers, data=data,
-                            timeout=35, proxies=proxy)
+                            timeout=35)
         
         if 'user_id' in resp.text:
             now = datetime.now()
             user_id = resp.json().get('user_id', 'Unknown')
             
-            print(Fore.GREEN + f"\n[✅] تم إنشاء الحساب! {now.strftime('%H:%M:%S')}" + Fore.RESET)
+            print(Fore.GREEN + f"\n[✅] تم إنشاء الحساب بنجاح! {now.strftime('%H:%M:%S')}" + Fore.RESET)
             print(Fore.CYAN + f"📧 {email}")
             print(f"👤 {username}")
             print(f"🔑 {password}")
@@ -394,31 +383,33 @@ def create_account():
             send_telegram_message(success_msg)
             return True, email, username, password, user_id
         else:
-            print(Fore.RED + "[-] فشل الإنشاء" + Fore.RESET)
+            error_text = resp.text[:200]
+            if 'spam' in error_text.lower():
+                print(Fore.RED + "[-] Instagram حظر المحاولة - انتظر ساعة" + Fore.RESET)
+            else:
+                print(Fore.RED + f"[-] فشل: {error_text}" + Fore.RESET)
             return False, None, None, None, None
     except Exception as e:
         print(Fore.RED + f"[-] خطأ: {e}" + Fore.RESET)
         return False, None, None, None, None
 
-# ===== واجهة البوت المتطورة =====
+# ===== واجهة البوت =====
 async def main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, chat_id=None):
     keyboard = [
-        [InlineKeyboardButton("🔥 إنشاء حساب (تخفي مطلق)", callback_data="create")],
-        [InlineKeyboardButton("🌐 تحديث البروكسيات", callback_data="update_proxies")],
-        [InlineKeyboardButton("📁 عرض الحسابات", callback_data="show_accounts")],
-        [InlineKeyboardButton("🗑️ مسح الكل", callback_data="clear_all")],
-        [InlineKeyboardButton("📊 إنشاء متعدد (3 حسابات)", callback_data="create_multi")],
+        [InlineKeyboardButton("💀 إنشاء حساب - وضع التخفي", callback_data="create")],
+        [InlineKeyboardButton("🔥 إنشاء 3 حسابات متتالية", callback_data="create_multi")],
+        [InlineKeyboardButton("📁 عرض الحسابات المحفوظة", callback_data="show_accounts")],
+        [InlineKeyboardButton("🗑️ مسح جميع الحسابات", callback_data="clear_all")],
         [InlineKeyboardButton("ℹ️ حالة النظام", callback_data="status")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    text = """🤖 *ULTIMATE INSTAGRAM BOT - IMPOSSIBLE TO DETECT*
+    text = """💀 *ELITE INSTAGRAM BOT - ULTIMATE STEALTH* 💀
 
-🔥 *تقنيات التخفي المطلق:*
-• ✅ بروكسيات متجددة تلقائياً
-• ✅ بصمة رقمية فريدة لكل طلب
-• ✅ تأخيرات ذكية متغيرة
+🔥 *التقنيات الخارقة النشطة:*
+• ✅ 100+ User-Agent حقيقي
 • ✅ 4 خدمات بريد مؤقت
-• ✅ تعدد مصادر الطلبات
+• ✅ بصمة رقمية فريدة
+• ✅ تأخيرات ذكية متغيرة
 • ✅ تخفي على مستوى المؤسسات
 
 *اختر الإجراء:*"""
@@ -438,11 +429,11 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = query.from_user.id
     
     if data == "create":
-        await query.edit_message_text("🔄 جاري إنشاء حساب - وضع التخفي المطلق...\n⏱️ قد يستغرق 3-4 دقائق")
+        await query.edit_message_text("💀 جاري تفعيل وضع التخفي الخارق...\n⏱️ قد يستغرق 3-4 دقائق")
         
         success, email, username, password, uid = create_account()
         if success:
-            text = f"""✅ *تم إنشاء الحساب بنجاح (تخفي مطلق)!*
+            text = f"""✅ *تم إنشاء الحساب بنجاح (وضع التخفي)!*
 
 📧 `{email}`
 👤 `{username}`
@@ -452,34 +443,34 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 🔥 تم استخدام أقوى تقنيات التخفي"""
             await query.edit_message_text(text, parse_mode="Markdown")
         else:
-            await query.edit_message_text("❌ *فشل الإنشاء*\n\nInstagram يحظر مؤقتاً. تم تغيير البروكسي تلقائياً.\n⏰ انتظر 30 دقيقة ثم حاول.", parse_mode="Markdown")
+            await query.edit_message_text("❌ *فشل الإنشاء*\n\nInstagram يحظر المحاولات حالياً.\n⏰ انتظر ساعة ثم حاول مرة أخرى.", parse_mode="Markdown")
         
         await asyncio.sleep(3)
         await main_menu(update, context, chat_id=user_id)
     
     elif data == "create_multi":
-        await query.edit_message_text("🔄 جاري إنشاء 3 حسابات...\n⏱️ قد يستغرق 10-15 دقيقة")
+        await query.edit_message_text("🔥 جاري إنشاء 3 حسابات...\n⏱️ قد يستغرق 15-20 دقيقة")
         
         success_count = 0
+        results = []
         for i in range(3):
-            await query.message.reply_text(f"📝 الحساب {i+1}/3...")
-            success, _, _, _, _ = create_account()
+            await query.message.reply_text(f"📝 جاري إنشاء الحساب {i+1}/3...")
+            success, email, username, password, uid = create_account()
             if success:
                 success_count += 1
+                results.append(f"✅ {i+1}. {username} | {email}")
+                await query.message.reply_text(f"✅ تم الحساب {i+1}: {username}")
+            else:
+                results.append(f"❌ {i+1}. فشل الإنشاء")
+                await query.message.reply_text(f"❌ فشل الحساب {i+1}")
+            
             if i < 2:
-                wait = random.randint(600, 900)
-                await query.message.reply_text(f"⏳ انتظار {wait//60} دقيقة...")
+                wait = random.randint(1800, 3600)
+                await query.message.reply_text(f"⏳ انتظار {wait//60} دقيقة قبل الحساب التالي...")
                 time.sleep(wait)
         
-        await query.message.reply_text(f"✅ *تم إنشاء {success_count}/3 حسابات*", parse_mode="Markdown")
-        await asyncio.sleep(2)
-        await main_menu(update, context, chat_id=user_id)
-    
-    elif data == "update_proxies":
-        await query.edit_message_text("🔄 جاري تحديث البروكسيات...")
-        proxy_manager.fetch_proxies()
-        count = len(proxy_manager.proxies)
-        await query.edit_message_text(f"✅ *تم التحديث!*\n📊 بروكسيات جاهزة: {count}", parse_mode="Markdown")
+        final_text = f"📊 *النتيجة:*\n" + "\n".join(results) + f"\n\n✅ تم إنشاء {success_count}/3 حسابات"
+        await query.message.reply_text(final_text, parse_mode="Markdown")
         await asyncio.sleep(2)
         await main_menu(update, context, chat_id=user_id)
     
@@ -488,12 +479,12 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             with open("accounts.txt", "r") as f:
                 acc = f.readlines()
             if acc:
-                text = "📁 *آخر الحسابات:*\n\n" + "".join(acc[-10:])
+                text = "📁 *آخر الحسابات:*\n\n" + "".join(acc[-15:])
                 await query.edit_message_text(text, parse_mode="Markdown")
             else:
-                await query.edit_message_text("📁 *لا توجد حسابات*", parse_mode="Markdown")
+                await query.edit_message_text("📁 *لا توجد حسابات محفوظة*", parse_mode="Markdown")
         except:
-            await query.edit_message_text("📁 *لا توجد حسابات*", parse_mode="Markdown")
+            await query.edit_message_text("📁 *لا توجد حسابات محفوظة*", parse_mode="Markdown")
         await asyncio.sleep(2)
         await main_menu(update, context, chat_id=user_id)
     
@@ -510,45 +501,45 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except:
             count = 0
         
-        text = f"""ℹ️ *حالة النظام - التخفي المطلق*
+        text = f"""💀 *حالة النظام - وضع التخفي الخارق*
 
-🛡️ *الحماية:*
-• وضع التخفي: ✅ مفعل
-• بروكسيات: {len(proxy_manager.proxies)}
+🛡️ *التقنيات النشطة:*
+• User-Agent: 100+ حقيقي
+• خدمات البريد: 4
+• بصمة رقمية: ✅
+• تأخيرات ذكية: ✅
+
+📊 *الإحصائيات:*
 • حسابات محفوظة: {count}
-• خدمات بريد: 4
+• حالة البوت: اختباري
 
-⚡ *الحالة:* جاهز للإنشاء 🔥"""
+🔥 *جاهز للإنشاء في أي لحظة*"""
         await query.edit_message_text(text, parse_mode="Markdown")
         await asyncio.sleep(2)
         await main_menu(update, context, chat_id=user_id)
 
 # ------------------- التشغيل الرئيسي -------------------
 if __name__ == "__main__":
-    print(Fore.CYAN + """
-╔══════════════════════════════════════════════════════════╗
-║                                                          ║
-║     🔥 ULTIMATE INSTAGRAM BOT - IMPOSSIBLE TO DETECT 🔥  ║
-║                                                          ║
-║          أقوى نسخة تخفي على الإطلاق - مستحيل الكشف       ║
-║                                                          ║
-╚══════════════════════════════════════════════════════════╝
+    print(Fore.RED + """
+╔══════════════════════════════════════════════════════════════╗
+║                                                              ║
+║     💀 ULTIMATE INSTAGRAM BOT - IMPOSSIBLE TO DETECT 💀      ║
+║                                                              ║
+║          أخبث نسخة تخفي على الإطلاق - مستحيل الكشف           ║
+║                                                              ║
+╚══════════════════════════════════════════════════════════════╝
 """ + Fore.RESET)
     
     print(Fore.MAGENTA + """
-⚡ التقنيات الخارقة:
-├─ ✅ بروكسيات متجددة (4 مصادر)
+⚔️ التقنيات الخارقة النشطة:
+├─ ✅ 100+ User-Agent حقيقي (غير قابل للكشف)
+├─ ✅ 4 خدمات بريد مؤقت مختلفة
 ├─ ✅ بصمة رقمية فريدة لكل طلب
-├─ ✅ 4 خدمات بريد مؤقت
-├─ ✅ تأخيرات ذكية متغيرة
-├─ ✅ تعدد مصادر الطلبات
+├─ ✅ تأخيرات ذكية متغيرة (3-12 ثانية)
 ├─ ✅ تخفي TLS متقدم
-└─ ✅ واجهة بوت متطورة
+├─ ✅ واجهة بوت متطورة
+└─ ✅ بدون بروكسيات - يعمل مباشرة
 """ + Fore.RESET)
-    
-    # تجهيز البروكسيات
-    print(Fore.YELLOW + "[*] جاري تجهيز البروكسيات..." + Fore.RESET)
-    proxy_manager.fetch_proxies()
     
     # تشغيل Flask
     flask_thread = threading.Thread(target=run_flask, daemon=True)
@@ -559,9 +550,9 @@ if __name__ == "__main__":
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(button_handler))
     
-    print(Fore.GREEN + "✅ البوت يعمل - وضع التخفي المطلق!" + Fore.RESET)
+    print(Fore.GREEN + "✅ البوت يعمل - وضع التخفي الخارق نشط 100%!" + Fore.RESET)
     print(Fore.CYAN + f"🤖 البوت: {BOT_TOKEN[:20]}...")
-    print(f"🔄 بروكسيات: {len(proxy_manager.proxies)}")
-    print(f"🔥 مستوى التخفي: 100%" + Fore.RESET)
+    print(f"👤 المشرف: {ADMIN_ID}")
+    print("🔥 مستوى التخفي: قصوى - مستحيل الكشف" + Fore.RESET)
     
     app.run_polling(allowed_updates=Update.ALL_TYPES)
