@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: instagram-creator-bot
+    runtime: image
+    repo: https://github.com/YOUR_USERNAME/YOUR_REPO_NAME
+    plan: free
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: ADMIN_ID
+        sync: false
+    healthCheckPath: /
