@@ -4,31 +4,39 @@ from colorama import Fore, init
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 import asyncio
-from flask import Flask, request
+from flask import Flask
+import os
+from os import environ
 
 # تهيئة الألوان
 init(autoreset=True)
 
+# ========== التوكن والايدي مثبتين هنا ==========
+BOT_TOKEN = "8513010794:AAH9_FatomlJIIPbCBajnYuRhYy2BcqwBxY"
+ADMIN_ID = "8311254462"
+# =============================================
+
 # ------------------- إعدادات Flask الأساسية -------------------
-# هذه الأسطر مهمة جدًا لتشغيل البوت على Render.com بدون أخطاء
 app_flask = Flask(__name__)
 
 @app_flask.route('/')
 def home():
-    # هذا الرد يخبر Render أن البوت يعمل بشكل طبيعي
     return "✅ البوت يعمل بنجاح!", 200
 
 def run_flask():
-    # تشغيل خادم Flask الصغير في منفذ منفصل (كما تطلبه Render)
-    app_flask.run(host='0.0.0.0', port=int(environ.get('PORT', 8080)))
+    port = int(environ.get('PORT', 8080))
+    app_flask.run(host='0.0.0.0', port=port)
 
 # ------------------- الكود الأصلي للبوت -------------------
-print("- " * 20)
-ks = input("- Enter your token bot : ")
-zb = input("- Enter your id tele : ")
-print("- " * 20)
+print(Fore.CYAN + """
+╔══════════════════════════════════════════════════╗
+║     Instagram Account Creator Bot                ║
+║         نسخة التخفي المتطورة v5.0               ║
+║              مثبت عليها التوكن ✅                 ║
+╚══════════════════════════════════════════════════╝
+""" + Fore.RESET)
 
-# ========== تقنيات تخفي متطورة (نفس الكود الأصلي) ==========
+# ========== تقنيات تخفي متطورة ==========
 try:
     from user_agent import generate_user_agent
     USE_ADVANCED_UA = True
@@ -77,10 +85,10 @@ def generate_password():
     return ''.join(password)
 
 def send_telegram_message(message):
-    if ks and zb:
+    if BOT_TOKEN and ADMIN_ID:
         try:
-            url = f"https://api.telegram.org/bot{ks}/sendMessage"
-            data = {"chat_id": zb, "text": message, "parse_mode": "HTML"}
+            url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+            data = {"chat_id": ADMIN_ID, "text": message, "parse_mode": "HTML"}
             requests.post(url, data=data, timeout=15)
         except:
             pass
@@ -159,7 +167,7 @@ def wait_for_verification_code(email_address, max_wait=180):
 def random_string(length=12):
     return ''.join(random.choices(string.ascii_lowercase + string.digits + string.ascii_uppercase, k=length))
 
-def make(ks, zb):
+def make():
     print("\n[ * ] جاري إنشاء بريد مؤقت...")
     time.sleep(random.uniform(3, 6))
     
@@ -171,7 +179,6 @@ def make(ks, zb):
     print(f"[ + ] البريد الإلكتروني: {email}")
     time.sleep(random.uniform(2, 5))
     
-    # توليد قيم عشوائية
     device_id = random_device_id()
     mid = random_mid()
     csrftoken = generate_csrf_token()
@@ -201,32 +208,27 @@ def make(ks, zb):
         'accept-encoding': 'gzip, deflate, br',
     }
     
-    # 1. التحقق من البريد
     print("[ * ] جاري التحقق من البريد...")
     data = {'email': email, 'jazoest': jazoest1}
     
     try:
         response = requests.post('https://www.instagram.com/api/v1/web/accounts/check_email/', 
                                 cookies=cookies, headers=headers, data=data, timeout=20)
-        
         if response.status_code != 200:
             print("[ - ] فشل التحقق من البريد")
             return False, None, None, None, None
-            
     except Exception as e:
         print(f"[ - ] خطأ في التحقق: {e}")
         return False, None, None, None, None
     
     time.sleep(random.uniform(3, 7))
     
-    # 2. طلب الكود
     print("[ * ] جاري طلب كود التفعيل...")
     data = {'device_id': device_id, 'email': email, 'jazoest': jazoest1}
     
     try:
         response = requests.post('https://www.instagram.com/api/v1/accounts/send_verify_email/', 
                                 cookies=cookies, headers=headers, data=data, timeout=20)
-        
         if response.status_code != 200:
             print("[ - ] فشل طلب الكود")
             return False, None, None, None, None
@@ -236,14 +238,12 @@ def make(ks, zb):
     
     time.sleep(random.uniform(4, 9))
     
-    # 3. انتظار الكود
     code = wait_for_verification_code(email)
     if not code:
         return False, None, None, None, None
     
     time.sleep(random.uniform(2, 5))
     
-    # 4. تأكيد الكود
     print("[ * ] جاري تأكيد الكود...")
     headers['referer'] = 'https://www.instagram.com/accounts/signup/emailConfirmation/'
     data = {'code': code, 'device_id': device_id, 'email': email, 'jazoest': jazoest1}
@@ -263,11 +263,6 @@ def make(ks, zb):
             print(Fore.YELLOW + f"     السبب: {response_json.get('feedback_message', 'غير معروف')}" + Fore.RESET)
             return False, None, None, None, None
         
-        if response_json.get('feedback_required'):
-            print(Fore.RED + f"[ - ] مطلوب تقييم أمان" + Fore.RESET)
-            print(Fore.YELLOW + f"     الرسالة: {response_json.get('feedback_message', 'يرجى المحاولة لاحقاً')}" + Fore.RESET)
-            return False, None, None, None, None
-        
         rc = response_json.get("signup_code", "")
         
     except Exception as e:
@@ -276,7 +271,6 @@ def make(ks, zb):
     
     time.sleep(random.uniform(2, 5))
     
-    # توليد بيانات
     username = random_string(random.randint(10, 15))
     password = generate_password()
     first_name = random_string(random.randint(6, 9)).capitalize()
@@ -284,7 +278,6 @@ def make(ks, zb):
     month = random.randint(1, 12)
     year = random.randint(1988, 2002)
     
-    # 5. محاولة إنشاء أولية
     headers['referer'] = 'https://www.instagram.com/accounts/signup/name/'
     data = {
         'enc_password': f'#PWD_INSTAGRAM_BROWSER:0:{int(time.time())}:{password}',
@@ -305,7 +298,6 @@ def make(ks, zb):
     
     time.sleep(random.uniform(2, 4))
     
-    # 6. التحقق من العمر
     headers['referer'] = 'https://www.instagram.com/accounts/signup/birthday/'
     data = {'day': str(day), 'month': str(month), 'year': str(year), 'jazoest': jazoest2}
     
@@ -317,7 +309,6 @@ def make(ks, zb):
     
     time.sleep(random.uniform(2, 4))
     
-    # 7. طلب اقتراحات اسم المستخدم
     data = {'email': email, 'name': first_name, 'jazoest': jazoest2}
     
     try:
@@ -328,7 +319,6 @@ def make(ks, zb):
     
     time.sleep(random.uniform(2, 4))
     
-    # 8. الإنشاء النهائي
     print("[ * ] جاري إنشاء الحساب...")
     headers['referer'] = 'https://www.instagram.com/accounts/signup/username/'
     data = {
@@ -357,17 +347,6 @@ def make(ks, zb):
         except:
             response_json = {}
         
-        if response_json.get('spam'):
-            print(Fore.RED + f"\n[ - ] ❌ فشل الإنشاء - تم اكتشاف نشاط آلي" + Fore.RESET)
-            print(Fore.YELLOW + f"     السبب: {response_json.get('feedback_message', 'Instagram يحظر طلباتك مؤقتاً')}" + Fore.RESET)
-            print(Fore.YELLOW + "     الحل: انتظر 24 ساعة قبل المحاولة مرة أخرى" + Fore.RESET)
-            return False, None, None, None, None
-        
-        if response_json.get('feedback_required'):
-            print(Fore.RED + f"\n[ - ] ❌ فشل الإنشاء - مطلوب تقييم أمان" + Fore.RESET)
-            print(Fore.YELLOW + f"     الرسالة: {response_json.get('feedback_message', 'يرجى المحاولة لاحقاً')}" + Fore.RESET)
-            return False, None, None, None, None
-        
         if 'user_id' in response.text:
             now = datetime.now()
             user_id = response_json.get('user_id', 'Unknown')
@@ -391,7 +370,7 @@ def make(ks, zb):
             send_telegram_message(success_message)
             return True, email, username, password, user_id
         else:
-            print(Fore.RED + f"\n[ - ] ❌ فشل الإنشاء - سبب غير معروف" + Fore.RESET)
+            print(Fore.RED + f"\n[ - ] ❌ فشل الإنشاء" + Fore.RESET)
             return False, None, None, None, None
             
     except Exception as e:
@@ -402,11 +381,7 @@ def make(ks, zb):
 async def main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, chat_id=None):
     keyboard = [
         [InlineKeyboardButton("📝 إنشاء حساب", callback_data="create_one")],
-        [InlineKeyboardButton("📊 حسابات متعددة", callback_data="create_multiple")],
-        [InlineKeyboardButton("📁 عرض الحسابات", callback_data="show_accounts")],
-        [InlineKeyboardButton("🗑️ مسح الحسابات", callback_data="clear_accounts")],
-        [InlineKeyboardButton("ℹ️ معلومات", callback_data="info")],
-        [InlineKeyboardButton("🔄 الحالة", callback_data="status")]
+        [InlineKeyboardButton("🔙 رجوع", callback_data="back_to_menu")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     text = "🤖 *بوت إنشاء حسابات Instagram*\nاختر الإجراء:"
@@ -426,7 +401,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     if data == "create_one":
         await query.edit_message_text("🔄 جاري الإنشاء...\n⏱️ قد يستغرق 2-3 دقائق")
-        success, email, username, password, uid = make(ks, zb)
+        success, email, username, password, uid = make()
         if success:
             text = f"✅ *تم الإنشاء!*\n📧 `{email}`\n👤 `{username}`\n🔑 `{password}`"
             await query.edit_message_text(text, parse_mode="Markdown")
@@ -455,65 +430,22 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await asyncio.sleep(1)
         await main_menu(update, context, chat_id=user_id)
     
-    elif data == "info":
-        text = """ℹ️ *معلومات*
-
-🚫 *سبب الفشل:*
-Instagram اكتشف أنك تحاول إنشاء حسابات آلياً وقام بحظر مؤقت لـ IP الخاص بك.
-
-✅ *الحلول:*
-• انتظر 24-48 ساعة
-• استخدم VPN أو Proxy
-• قلل عدد المحاولات
-• انتظر 10 دقائق بين المحاولات"""
-        await query.edit_message_text(text, parse_mode="Markdown")
-        await asyncio.sleep(3)
-        await main_menu(update, context, chat_id=user_id)
-    
-    elif data == "status":
-        try:
-            with open("accounts.txt", "r") as f:
-                count = len(f.readlines())
-        except:
-            count = 0
-        await query.edit_message_text(f"✅ *البوت يعمل*\n📊 الحسابات: {count}", parse_mode="Markdown")
-        await asyncio.sleep(1)
-        await main_menu(update, context, chat_id=user_id)
-    
     elif data == "back_to_menu":
         await main_menu(update, context, chat_id=user_id)
-    
-    elif data == "create_multiple":
-        keyboard = [[InlineKeyboardButton("🔙 رجوع", callback_data="back_to_menu")]]
-        await query.edit_message_text("⚠️ *تنبيه:* Instagram يحظر حاليًا\nالرجاء المحاولة بعد 24 ساعة", 
-                                     parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
 
 # ------------------- الكود الرئيسي للتشغيل -------------------
 if __name__ == "__main__":
-    print(Fore.CYAN + "\n╔════════════════════════════════╗")
-    print("║  Instagram Creator v5.0      ║")
-    print("║      Stealth Edition          ║")
-    print("╚════════════════════════════════╝\n" + Fore.RESET)
-
-    import os
-    from os import environ
-
-    BOT_TOKEN = environ.get('BOT_TOKEN', ks)
-    ADMIN_ID = environ.get('ADMIN_ID', zb)
-
-    if not BOT_TOKEN or BOT_TOKEN == "- Enter your token bot : ":
-        BOT_TOKEN = input(Fore.YELLOW + "Bot Token: " + Fore.RESET)
-    if not ADMIN_ID or ADMIN_ID == "- Enter your id tele : ":
-        ADMIN_ID = input(Fore.YELLOW + "Admin ID: " + Fore.RESET)
-
-    # تشغيل Flask في خيط منفصل لإبقاء Render سعيدًا
+    # تشغيل Flask في خيط منفصل
     flask_thread = threading.Thread(target=run_flask, daemon=True)
     flask_thread.start()
-
+    
     # تشغيل بوت Telegram
     app = Application.builder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(button_handler))
-
+    
     print(Fore.GREEN + "✅ البوت يعمل! أرسل /start" + Fore.RESET)
+    print(Fore.CYAN + f"🤖 التوكن: {BOT_TOKEN[:20]}...")
+    print(f"👤 الايدي: {ADMIN_ID}" + Fore.RESET)
+    
     app.run_polling(allowed_updates=Update.ALL_TYPES)
